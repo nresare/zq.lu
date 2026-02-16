@@ -6,7 +6,7 @@ params:
   homeInfoParams:
     Title: "zqlu \U0001F510"
     Content: >
-      zqlu is a text-based format for public keys designed to be efficient and convenient. A key looks something like this: `zq.luAAhI0TjjRFd5K5vfy4hig23m7bppmotzOLVIkwFnPMfVWDp`
+      zqlu is a text-based format for public keys such using algorithms such as Ed25519 and p256, designed to be efficient and convenient. A key looks something like this: `zq.luAAhI0TjjRFd5K5vfy4hig23m7bppmotzOLVIkwFnPMfVWDp`
 
   socialIcons:
     - name: github

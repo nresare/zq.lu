@@ -11,3 +11,9 @@ params:
   socialIcons:
     - name: github
       url: "https://github.com/nresare/zqlu"
+
+  author:
+    name: Noa Resare
+    email: noa@resare.com
+    location: London
+

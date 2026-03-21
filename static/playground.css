@@ -1,0 +1,199 @@
+:root {
+  color-scheme: light;
+  --zqlu-bg: #f3efe4;
+  --zqlu-panel: rgba(255, 252, 244, 0.92);
+  --zqlu-ink: #1d1b18;
+  --zqlu-muted: #665f52;
+  --zqlu-accent: #0d6b63;
+  --zqlu-accent-strong: #084740;
+  --zqlu-accent-soft: rgba(13, 107, 99, 0.14);
+  --zqlu-border: rgba(29, 27, 24, 0.12);
+  --zqlu-danger: #a12424;
+  --zqlu-shadow: 0 14px 32px rgba(53, 44, 25, 0.1);
+}
+
+.zqlu-home {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.zqlu-home__intro {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.zqlu-home__title {
+  margin: 0;
+}
+
+.zqlu-home__lead > *:first-child {
+  margin-top: 0;
+}
+
+.zqlu-home__lead > *:last-child {
+  margin-bottom: 0;
+}
+
+.zqlu-playground {
+  color: var(--zqlu-ink);
+}
+
+.zqlu-playground * {
+  box-sizing: border-box;
+}
+
+.zqlu-playground.panel {
+  backdrop-filter: blur(12px);
+  background: var(--zqlu-panel);
+  border: 1px solid var(--zqlu-border);
+  border-radius: 12px;
+  box-shadow: var(--zqlu-shadow);
+  padding: 10px 12px;
+}
+
+.zqlu-playground .stack {
+  display: grid;
+  gap: 8px;
+}
+
+.zqlu-playground label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--zqlu-muted);
+  margin-bottom: 6px;
+}
+
+.zqlu-playground .label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.zqlu-playground .label-row label {
+  margin-bottom: 0;
+}
+
+.zqlu-playground .copy-button {
+  border: 1px solid rgba(29, 27, 24, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--zqlu-accent-strong);
+  padding: 5px 10px;
+  font: 600 0.68rem/1 "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, monospace;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.zqlu-playground .copy-button:hover {
+  border-color: rgba(13, 107, 99, 0.4);
+  background: rgba(255, 255, 255, 0.96);
+  transform: translateY(-1px);
+}
+
+.zqlu-playground .copy-button:active {
+  transform: translateY(0);
+}
+
+.zqlu-playground .copy-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.zqlu-playground textarea {
+  width: 100%;
+  height: 5.1rem;
+  border: 1px solid rgba(29, 27, 24, 0.14);
+  border-radius: 0;
+  padding: 10px 11px;
+  resize: none;
+  font: 500 0.75rem/1.28 "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, monospace;
+  color: var(--zqlu-ink);
+  background: rgba(255, 255, 255, 0.75);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+.zqlu-playground textarea:focus {
+  outline: none;
+  border-color: rgba(13, 107, 99, 0.48);
+  box-shadow: 0 0 0 4px var(--zqlu-accent-soft);
+  transform: translateY(-1px);
+}
+
+.zqlu-playground .output {
+  height: 3.3rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+
+.zqlu-playground .intro {
+  margin: 0 0 4px;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: var(--zqlu-muted);
+}
+
+.zqlu-playground .status {
+  margin-top: 6px;
+  min-height: 1.1em;
+  font-size: 0.74rem;
+  color: var(--zqlu-muted);
+}
+
+.zqlu-playground .status.error {
+  color: var(--zqlu-danger);
+}
+
+.zqlu-playground .meta {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 0.22fr) minmax(0, 0.78fr);
+}
+
+.zqlu-playground .card {
+  padding: 9px 10px;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(29, 27, 24, 0.08);
+}
+
+.zqlu-playground .card h2 {
+  margin: 0 0 4px;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--zqlu-muted);
+}
+
+.zqlu-playground .card p,
+.zqlu-playground .card code {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.zqlu-playground #fingerprint {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.zqlu-playground .mono {
+  font-family: "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .zqlu-playground .meta {
+    grid-template-columns: 1fr;
+  }
+}

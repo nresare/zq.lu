@@ -1,13 +1,17 @@
 baseURL: https://zq.lu/
 languageCode: en-uk
-title: zqlu - efficient, convenient public keys
+title: zqlu - convenient public keys
 theme: PaperMod
 params:
   homeInfoParams:
     Title: "zqlu \U0001F510"
     Content: >
-      zqlu is a text-based format for public keys such using algorithms such as Ed25519 and p256, designed to be efficient and convenient. A key looks something like this: `zq.luAAhI0TjjRFd5K5vfy4hig23m7bppmotzOLVIkwFnPMfVWDp`
+      zqlu is a text-based format for public keys. It is similar to the OpenSSH public key format, but
+      the resulting keys are shorter, only contains easy to copy characters, and has a built-in checksum to detect
+      corruption.
 
+      Please use the javascript below to try it out, or have a look at the [reference implementation and
+      specification](https://github.com/nresare/zqlu) for more information.
   socialIcons:
     - name: github
       url: "https://github.com/nresare/zqlu"

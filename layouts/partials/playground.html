@@ -1,0 +1,43 @@
+<section class="zqlu-playground panel stack">
+  <p class="intro">
+    Paste an OpenSSH, PEM/SPKI, or zqlu public key to convert it.
+  </p>
+
+  <div>
+    <label for="source">Input Key</label>
+    <textarea
+      id="source"
+      rows="3"
+      cols="80"
+      spellcheck="false"
+      placeholder="Paste an OpenSSH key, PEM public key, or zq.lu key"></textarea>
+    <div id="status" class="status">Waiting for input.</div>
+  </div>
+
+  <div>
+    <div class="label-row">
+      <label id="resultLabel" for="result">Converted Key</label>
+      <button id="copyButton" class="copy-button" type="button">Copy</button>
+    </div>
+    <textarea
+      id="result"
+      class="output"
+      rows="3"
+      cols="80"
+      spellcheck="false"
+      readonly
+      placeholder="The converted key appears here"></textarea>
+
+    <div class="meta">
+      <div class="card">
+        <h2>Key Type</h2>
+        <p id="keyType">-</p>
+      </div>
+
+      <div class="card">
+        <h2>SHA-256 Fingerprint</h2>
+        <p id="fingerprint" class="mono">-</p>
+      </div>
+    </div>
+  </div>
+</section>

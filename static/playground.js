@@ -3,12 +3,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const ZQLU_PREFIX = "zq.lu";
   const KEY_TYPE_LABELS = {
     A: "Ed25519",
+    B: "RSA 2048",
     C: "P-256",
     D: "P-256",
     E: "P-384",
     F: "P-384",
     G: "P-521",
-    H: "P-521"
+    H: "P-521",
+    I: "RSA 3072",
+    J: "RSA 4096",
+    K: "RSA"
+  };
+  const RSA_F4 = Uint8Array.of(0x01, 0x00, 0x01);
+  const RSA_FIXED_TYPES = {
+    256: "B",
+    384: "I",
+    512: "J"
+  };
+  const RSA_FIXED_LENGTHS = {
+    B: 256,
+    I: 384,
+    J: 512
   };
   const CURVE_TO_TYPES = {
     nistp256: { even: "D", odd: "C", xLength: 32, label: "P-256" },
@@ -42,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   const OID_ED25519 = "1.3.101.112";
   const OID_EC_PUBLIC_KEY = "1.2.840.10045.2.1";
+  const OID_RSA_ENCRYPTION = "1.2.840.113549.1.1.1";
   const OID_P256 = "1.2.840.10045.3.1.7";
   const OID_P384 = "1.3.132.0.34";
   const OID_P521 = "1.3.132.0.35";
@@ -195,6 +211,16 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
+    if (algorithm === "ssh-rsa") {
+      const exponent = parsePositiveMpint(reader.readString(), "RSA exponent");
+      const modulus = parsePositiveMpint(reader.readString(), "RSA modulus");
+      reader.assertDone();
+      return {
+        format: "OpenSSH",
+        ...encodeRsaPayload(exponent, modulus)
+      };
+    }
+
     throw new Error("Unsupported OpenSSH key type.");
   }
 
@@ -228,6 +254,16 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
+    if (spki.algorithmOid === OID_RSA_ENCRYPTION) {
+      if (spki.algorithmParameters !== null) {
+        throw new Error("RSA PEM keys must use NULL or absent algorithm parameters.");
+      }
+      return {
+        format: "PEM/SPKI",
+        ...parseRsaPublicKey(spki.subjectPublicKey)
+      };
+    }
+
     throw new Error("Unsupported PEM public key type.");
   }
 
@@ -249,6 +285,37 @@ document.addEventListener("DOMContentLoaded", () => {
     return {
       keyType: yLastByte % 2 === 0 ? curve.even : curve.odd,
       payload: x
+    };
+  }
+
+  function parseRsaPublicKey(der) {
+    const reader = createAsn1Reader(der);
+    const outer = reader.readElement(0x30);
+    reader.assertDone();
+
+    const rsaReader = createAsn1Reader(outer.value);
+    const modulus = parsePositiveDerInteger(rsaReader.readElement(0x02).value, "RSA modulus");
+    const exponent = parsePositiveDerInteger(rsaReader.readElement(0x02).value, "RSA exponent");
+    rsaReader.assertDone();
+    return encodeRsaPayload(exponent, modulus);
+  }
+
+  function encodeRsaPayload(exponent, modulus) {
+    if (bytesEqual(exponent, RSA_F4) && RSA_FIXED_TYPES[modulus.length]) {
+      return {
+        keyType: RSA_FIXED_TYPES[modulus.length],
+        payload: modulus
+      };
+    }
+
+    return {
+      keyType: "K",
+      payload: concatBytes(
+        encodeVarint(exponent.length),
+        exponent,
+        encodeVarint(modulus.length),
+        modulus
+      )
     };
   }
 
@@ -275,6 +342,15 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
+    if (isRsaType(parsed.keyType)) {
+      const rsa = decodeRsaPayload(parsed.keyType, parsed.payload);
+      return concatBytes(
+        sshString(bytes("ssh-rsa")),
+        sshString(toOpenSshMpint(rsa.exponent, "RSA exponent")),
+        sshString(toOpenSshMpint(rsa.modulus, "RSA modulus"))
+      );
+    }
+
     const curveName = KEY_TYPE_TO_CURVE[parsed.keyType];
     if (!curveName) {
       throw new Error("Unsupported key type for fingerprint generation.");
@@ -290,10 +366,155 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function encodeOpenSsh(parsed) {
     const keyBlob = buildOpenSshBlob(parsed);
-    const algorithm = parsed.keyType === "A"
-      ? "ssh-ed25519"
-      : `ecdsa-sha2-${KEY_TYPE_TO_CURVE[parsed.keyType]}`;
+    let algorithm;
+    if (parsed.keyType === "A") {
+      algorithm = "ssh-ed25519";
+    } else if (isRsaType(parsed.keyType)) {
+      algorithm = "ssh-rsa";
+    } else {
+      algorithm = `ecdsa-sha2-${KEY_TYPE_TO_CURVE[parsed.keyType]}`;
+    }
     return `${algorithm} ${base64Encode(keyBlob)}`;
+  }
+
+  function decodeRsaPayload(keyType, payload) {
+    const fixedLength = RSA_FIXED_LENGTHS[keyType];
+    if (fixedLength !== undefined) {
+      if (payload.length !== fixedLength) {
+        throw new Error("Invalid RSA modulus length.");
+      }
+      return {
+        exponent: RSA_F4,
+        modulus: payload
+      };
+    }
+
+    if (keyType !== "K") {
+      throw new Error("Unsupported RSA key type.");
+    }
+
+    const reader = createValueReader(payload);
+    const exponent = reader.readLengthValue("RSA exponent");
+    const modulus = reader.readLengthValue("RSA modulus");
+    reader.assertDone();
+    return { exponent, modulus };
+  }
+
+  function createValueReader(data) {
+    let offset = 0;
+    return {
+      readLengthValue(fieldName) {
+        const varint = readVarint(data, offset);
+        const length = varint.value;
+        offset = varint.nextOffset;
+        if (length === 0) {
+          throw new Error(`${fieldName} is empty.`);
+        }
+        if (offset + length > data.length) {
+          throw new Error(`${fieldName} length exceeds remaining RSA key data.`);
+        }
+        const value = data.slice(offset, offset + length);
+        offset += length;
+        rejectLeadingZero(value, fieldName);
+        return value;
+      },
+      assertDone() {
+        if (offset !== data.length) {
+          throw new Error("RSA key has trailing data.");
+        }
+      }
+    };
+  }
+
+  function readVarint(data, initialOffset) {
+    let value = 0;
+    let shift = 0;
+    let offset = initialOffset;
+
+    while (offset < data.length) {
+      const byte = data[offset];
+      value += (byte & 0x7f) * (2 ** shift);
+      offset += 1;
+      if ((byte & 0x80) === 0) {
+        return { value, nextOffset: offset };
+      }
+      shift += 7;
+      if (shift >= 53) {
+        throw new Error("RSA length varint overflow.");
+      }
+    }
+
+    throw new Error("Truncated RSA length varint.");
+  }
+
+  function encodeVarint(value) {
+    const bytesOut = [];
+    let current = value;
+    while (current >= 0x80) {
+      bytesOut.push((current & 0x7f) | 0x80);
+      current = Math.floor(current / 0x80);
+    }
+    bytesOut.push(current);
+    return Uint8Array.from(bytesOut);
+  }
+
+  function parsePositiveMpint(value, fieldName) {
+    if (value.length === 0) {
+      throw new Error(`${fieldName} is empty.`);
+    }
+    if (value[0] === 0) {
+      const withoutSignPadding = value.slice(1);
+      if (withoutSignPadding.length === 0) {
+        throw new Error(`${fieldName} must be positive.`);
+      }
+      rejectLeadingZero(withoutSignPadding, fieldName);
+      return withoutSignPadding;
+    }
+    if (value[0] & 0x80) {
+      throw new Error(`${fieldName} is not a positive mpint.`);
+    }
+    rejectLeadingZero(value, fieldName);
+    return value;
+  }
+
+  function parsePositiveDerInteger(value, fieldName) {
+    if (value.length === 0) {
+      throw new Error(`${fieldName} is empty.`);
+    }
+    if (value[0] & 0x80) {
+      throw new Error(`${fieldName} is negative.`);
+    }
+    if (value[0] === 0) {
+      const withoutSignPadding = value.slice(1);
+      if (withoutSignPadding.length === 0) {
+        throw new Error(`${fieldName} must be positive.`);
+      }
+      rejectLeadingZero(withoutSignPadding, fieldName);
+      return withoutSignPadding;
+    }
+    rejectLeadingZero(value, fieldName);
+    return value;
+  }
+
+  function toOpenSshMpint(value, fieldName) {
+    if (value.length === 0) {
+      throw new Error(`${fieldName} is empty.`);
+    }
+    rejectLeadingZero(value, fieldName);
+    if (value[0] & 0x80) {
+      return concatBytes(Uint8Array.of(0), value);
+    }
+    return value;
+  }
+
+  function rejectLeadingZero(value, fieldName) {
+    if (value[0] === 0) {
+      throw new Error(`${fieldName} contains a leading zero octet.`);
+    }
+  }
+
+  function isRsaType(keyType) {
+    return keyType === "B" || keyType === "I" || keyType === "J" || keyType === "K";
   }
 
   function encodeEcPoint(keyType, xBytes) {
@@ -377,6 +598,18 @@ document.addEventListener("DOMContentLoaded", () => {
       offset += chunk.length;
     }
     return out;
+  }
+
+  function bytesEqual(left, right) {
+    if (left.length !== right.length) {
+      return false;
+    }
+    for (let i = 0; i < left.length; i += 1) {
+      if (left[i] !== right[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   function encodeBase62(data) {
